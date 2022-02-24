@@ -30,7 +30,7 @@ if([environment]::OSVersion.tostring().startswith('Microsoft')){
             exit 1
         }elseif($chocochk_1.count -eq 0 -and $usradminchk_1 -eq $true){
             # Install chocolatey
-            $executionpolicy_1=get-executionpolicy
+            $executionpolicy_1=get-executionpolicy -scope Process
             Set-ExecutionPolicy -scope Process Bypass
             $secprotcol_1=[System.Net.ServicePointManager]::SecurityProtocol
             [System.Net.ServicePointManager]::SecurityProtocol=[System.Net.ServicePointManager]::SecurityProtocol -bor 3072
