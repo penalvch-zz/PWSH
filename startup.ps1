@@ -340,7 +340,7 @@ if([environment]::OSVersion.tostring().startswith('Microsoft')){
         Get-windowscapability -online | where-object name -match '^Microsoft\.Windows\.PowerShell\.ISE' | Remove-WindowsCapability -online
         Get-windowscapability -online | where-object name -match '^Microsoft\.Windows\.Wordpad' | Remove-WindowsCapability -online
         Get-windowscapability -online | where-object name -match '^Microsoft\.Windows\.Paint' | Remove-WindowsCapability -online
-        Get-windowscapability -online | where-object name -match '^XPS\.\.Viewer' | Remove-WindowsCapability -online
+        Get-windowscapability -online | where-object name -match '^XPS\.Viewer' | Remove-WindowsCapability -online
 
         # WINDOWS OPTIONAL FEATURES
         <# Might be legacy from either earlier W10 or W10 Home?!
@@ -838,8 +838,8 @@ if([environment]::OSVersion.tostring().startswith('Microsoft')){
         
         # GET-PACKAGE
         #Get-Package: Unable to find package providers (Programs).
-        #Get-Package -Provider Programs -IncludeWindowsInstaller -Name 'Microsoft Update Health Tools' | Uninstall-Package
-        start-process powershell.exe -argumentlist "Get-Package -Provider Programs -IncludeWindowsInstaller -Name 'Microsoft Update Health Tools' | Uninstall-Package" -windowstyle hidden -verb runas
+        #Get-Package -Provider Programs -IncludeWindowsInstaller -Name 'Microsoft Update Health Tools'
+        start-process powershell.exe -argumentlist "uninstall-package -name 'Microsoft Update Health Tools'" -windowstyle hidden -verb runas
 
         #Motion
         Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" -Name LetAppsAccessMotion -Value 2
