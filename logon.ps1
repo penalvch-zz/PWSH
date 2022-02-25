@@ -1,7 +1,7 @@
-# STARTUP SCRIPT START
+# LOGON SCRIPT START
 <# 
 For Windows 10+ run as scheduled task with admin user:
-pwsh.exe -nologo -windowstyle hidden -ExecutionPolicy Bypass -command ". c:\scripts\startup.ps1; exit $LASTEXITCODE"
+pwsh.exe -nologo -windowstyle hidden -ExecutionPolicy Bypass -command ". c:\scripts\logon.ps1; exit $LASTEXITCODE"
 #>
 # DEFAULT
 if([environment]::OSVersion.tostring().startswith('Microsoft') -eq $false){
