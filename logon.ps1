@@ -1,7 +1,7 @@
-# LOGON SCRIPT START
+# STARTUP SCRIPT START
 <# 
 For Windows 10+ run as scheduled task with admin user:
-pwsh.exe -nologo -windowstyle hidden -ExecutionPolicy Bypass -command ". c:\scripts\logon.ps1; exit $LASTEXITCODE"
+pwsh.exe -nologo -windowstyle hidden -ExecutionPolicy Bypass -command ". c:\scripts\startup.ps1; exit $LASTEXITCODE"
 #>
 # DEFAULT
 if([environment]::OSVersion.tostring().startswith('Microsoft') -eq $false){
@@ -39,6 +39,13 @@ if([environment]::OSVersion.tostring().startswith('Microsoft')){
             [System.Net.ServicePointManager]::SecurityProtocol=$secprotcol_1
         }
         $chocolist_1=choco list --localonly
+        $lochk_1=$chocolist_1|where-object{$_ -match '^libreoffice-fresh'}
+        if($lochk_1.count -eq 0 -and $usradminchk_1 -eq $false){
+            # Choco libreoffice-fresh not installed and not admin
+            exit 1
+        }elseif($lochk_1.count -eq 0 -and $usradminchk_1 -eq $true){
+            $null=choco install libreoffice-fresh -y
+        }
         $mysqlclichk_1=$chocolist_1|where-object{$_ -match '^mysql-cli'}
         if($mysqlclichk_1.count -eq 0 -and $usradminchk_1 -eq $false){
             # Choco mysql-cli not installed and not admin
@@ -60,12 +67,20 @@ if([environment]::OSVersion.tostring().startswith('Microsoft')){
         }elseif($python3chk_1.count -eq 0 -and $usradminchk_1 -eq $true){
             $null=choco install python3 -y
         }
+        # VS2022: "MySQL for Visual Studio" not compatible yet with vs2022 > https://bugs.mysql.com/bug.php?id=105536
         $vs2019chk_1=$chocolist_1|where-object{$_ -match '^visualstudio2019community'}
         if($vs2019chk_1.count -eq 0 -and $usradminchk_1 -eq $false){
             # Choco visualstudio2019community not installed and not admin
             exit 1
         }elseif($vs2019chk_1.count -eq 0 -and $usradminchk_1 -eq $true){
             $null=choco install visualstudio2019community -y
+        }
+        $vscodechk_1=$chocolist_1|where-object{$_ -match '^vscode'}
+        if($vscodechk_1.count -eq 0 -and $usradminchk_1 -eq $false){
+            # Choco vscode not installed and not admin
+            exit 1
+        }elseif($vscodechk_1.count -eq 0 -and $usradminchk_1 -eq $true){
+            $null=choco install vscode -y
         }
         
         $null=choco upgrade all
@@ -85,12 +100,13 @@ if([environment]::OSVersion.tostring().startswith('Microsoft')){
         wsl --install
         wsl --update
         wsl --shutdown
-        wsl echo PASSWORD |wsl sudo -S apt-get update
-        wsl echo PASSWORD |wsl sudo -S apt-get -y upgrade
+        wsl echo $PASSWORD |wsl sudo -S apt-get update
+        wsl echo $PASSWORD |wsl sudo -S apt-get -y upgrade
         #> 
         # WSL END
         # POWER SETTINGS
         powercfg.exe /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+        # This used to work but was removed
         #$p_s=(get-ciminstance -namespace root\cimv2\power -Class win32_PowerPlan -Filter "ElementName='High Performance'")
         #$null=Invoke-CimMethod -InputObject $p_s -method Activate
 
@@ -837,9 +853,35 @@ if([environment]::OSVersion.tostring().startswith('Microsoft')){
         Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\PCHC' -name PreviousUninstall -value 1
         
         # GET-PACKAGE
-        #Get-Package: Unable to find package providers (Programs).
-        #Get-Package -Provider Programs -IncludeWindowsInstaller -Name 'Microsoft Update Health Tools'
+        <#
+        Get-Package -Provider Programs -IncludeWindowsInstaller -Name 'Microsoft Update Health Tools'
+        get-package -name 'Microsoft Update Health Tools'
+        PS5.1
+        Name                           Version          Source                           ProviderName
+        ----                           -------          ------                           ------------
+        Microsoft Update Health Tools  3.65.0.0                                          msi
+        PWSH 7.2.1
+        Get-Package: No package found for 'Microsoft Update Health Tools'.
+        Get-Package: Unable to find package providers (Programs).
+        
+        Works but depends on PS5.1
         start-process powershell.exe -argumentlist "uninstall-package -name 'Microsoft Update Health Tools'" -windowstyle hidden -verb runas
+        #>
+        $appchk=@()
+        $appchk+=Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+        $appchk+=Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+        $wphcchk=($appchk | where-object{$_.DisplayName -eq 'Windows PC Health Check'}).uninstallstring
+        if($wphcchk.count -gt 0){
+            $us=$wphcchk.replace('MsiExec.exe /X{','MsiExec.exe /qn /norestart /x {').replace('MsiExec.exe /X {','MsiExec.exe /qn /norestart /x {')
+            # For whatever reason, doing &, invoke-command, or msiexec.exe via PS5.1 or PWSH7.2.1 does not work
+            cmd.exe /c $us
+        }
+        $muhtchk=($appchk | where-object{$_.DisplayName -eq 'Microsoft Update Health Tools'}).uninstallstring
+        if($muhtchk.count -gt 0){
+            $us=$muhtchk.replace('MsiExec.exe /X{','MsiExec.exe /qn /norestart /x {').replace('MsiExec.exe /X {','MsiExec.exe /qn /norestart /x {')
+            cmd.exe /c $us
+        }
+        
 
         #Motion
         Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" -Name LetAppsAccessMotion -Value 2
